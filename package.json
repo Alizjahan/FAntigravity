@@ -1,0 +1,48 @@
+{
+  "name": "fantigravity-rtl",
+  "version": "2.0.0",
+  "description": "FAntigravity (RTL) - Smart RTL & Persian Typography Engine for Antigravity (Standalone App & IDE)",
+  "main": "./bin/index.js",
+  "homepage": "https://github.com/Alizjahan/FAntigravity",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Alizjahan/FAntigravity.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Alizjahan/FAntigravity/issues"
+  },
+  "keywords": [
+    "fantigravity",
+    "antigravity",
+    "rtl",
+    "persian",
+    "farsi",
+    "typography",
+    "vazirmatn",
+    "snapp-font",
+    "patcher",
+    "electron"
+  ],
+  "author": "Alizjahan (Alireza Jahanbakhsh) <alizjahanbakhsh@gmail.com>",
+  "license": "MIT",
+  "files": [
+    "bin",
+    "header.jpg",
+    "README.md",
+    "README_FA.md"
+  ],
+  "dependencies": {
+    "@electron/asar": "^4.2.0",
+    "figlet": "^1.11.0",
+    "ora": "^9.4.1",
+    "picocolors": "^1.1.1",
+    "prompts": "^2.4.2"
+  },
+  "type": "module",
+  "bin": {
+    "fantigravity": "bin/index.js",
+    "fantigravity-rtl": "bin/index.js",
+    "faliz-rtl": "bin/index.js",
+    "antigravity-rtl": "bin/index.js"
+  }
+}
