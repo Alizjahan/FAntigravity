@@ -23,7 +23,7 @@
     "patcher",
     "electron"
   ],
-  "author": "Alizjahan (Alireza Jahanbakhsh) <alizjahanbakhsh@gmail.com>",
+  "author": "Alizjahan <alizjahanbakhsh@gmail.com>",
   "license": "MIT",
   "files": [
     "bin",
