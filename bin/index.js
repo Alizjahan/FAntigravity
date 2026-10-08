@@ -33,8 +33,15 @@ const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
 
 function printBanner() {
     try {
-        const topArt = figlet.textSync('FAntigravity', { font: 'RubiFont' }).split('\n').filter(l => l.trim().length > 0);
-        const subArt = figlet.textSync('(Antigravity RTL)', { font: 'Small Block' }).split('\n').filter(l => l.trim().length > 0);
+        const cols = process.stdout.columns || 100;
+        const useSmall = cols < 88;
+
+        const font1 = useSmall ? 'Small' : 'Standard';
+        const font2 = useSmall ? 'Small Slant' : 'Slant';
+
+        const topLines = figlet.textSync('FAntigravity', { font: font1 }).split('\n').filter(l => l.trim().length > 0);
+        const subLines = figlet.textSync('(Antigravity RTL)', { font: font2 }).split('\n').filter(l => l.trim().length > 0);
+
         const hexColors = ['#3387FF', '#F25041', '#DFAC2A', '#91C45B'];
         const colors = hexColors.map(hex => {
             const bigint = parseInt(hex.replace('#', ''), 16);
@@ -72,13 +79,17 @@ function printBanner() {
             return result;
         };
 
+        const maxW = Math.max(...subLines.map(l => l.length));
+        const topW = Math.max(...topLines.map(l => l.length));
+        const pad = Math.max(0, Math.floor((maxW - topW) / 2));
+
         console.log('');
-        for (const line of topArt) {
-            console.log(' ' + applyGradient(line));
+        for (const line of topLines) {
+            console.log(' '.repeat(pad) + applyGradient(line));
         }
         console.log('');
-        for (const line of subArt) {
-            console.log('           ' + applyGradient(line));
+        for (const line of subLines) {
+            console.log(applyGradient(line));
         }
         console.log('');
         console.log(`\x1b[2m  FAntigravity (RTL) - Developed by Aliz | v${pkg.version}\x1b[0m\n`);
