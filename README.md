@@ -58,17 +58,17 @@ Node.js **20 or newer** is required.
 
 #### Windows (PowerShell or Command Prompt as Administrator)
 ```powershell
-npx fantigravity-rtl
+npx -y -p github:Alizjahan/FAntigravity fantigravity
 ```
 
 #### macOS (Terminal)
 ```bash
-npx fantigravity-rtl
+npx -y -p github:Alizjahan/FAntigravity fantigravity
 ```
 
 #### Linux (Terminal)
 ```bash
-sudo npx fantigravity-rtl
+sudo npx -y -p github:Alizjahan/FAntigravity fantigravity
 ```
 
 ---
@@ -88,13 +88,13 @@ node bin/index.js
 
 | Command | Action |
 | :--- | :--- |
-| `npx fantigravity-rtl` | Interactive scan: detects installed Antigravity targets and applies patch |
-| `npx fantigravity-rtl --app` | Targets Antigravity Standalone Desktop App directly |
-| `npx fantigravity-rtl --ide` | Targets Antigravity IDE (VS Code Edition) directly |
-| `npx fantigravity-rtl --restore` | Reverts all patches and restores clean original backups |
-| `npx fantigravity-rtl --restore --app` | Reverts patch and restores Antigravity Standalone App |
-| `npx fantigravity-rtl --restore --ide` | Reverts patch and restores Antigravity IDE |
-| `npx fantigravity-rtl --path "<path>"` | Specifies custom path to `app.asar` or IDE installation directory |
+| `npx -y -p github:Alizjahan/FAntigravity fantigravity` | Interactive scan: detects installed Antigravity targets and applies patch |
+| `npx -y -p github:Alizjahan/FAntigravity fantigravity --app` | Targets Antigravity Standalone Desktop App directly |
+| `npx -y -p github:Alizjahan/FAntigravity fantigravity --ide` | Targets Antigravity IDE (VS Code Edition) directly |
+| `npx -y -p github:Alizjahan/FAntigravity fantigravity --restore` | Reverts all patches and restores clean original backups |
+| `npx -y -p github:Alizjahan/FAntigravity fantigravity --restore --app` | Reverts patch and restores Antigravity Standalone App |
+| `npx -y -p github:Alizjahan/FAntigravity fantigravity --restore --ide` | Reverts patch and restores Antigravity IDE |
+| `npx -y -p github:Alizjahan/FAntigravity fantigravity --path "<path>"` | Specifies custom path to `app.asar` or IDE installation directory |
 
 ---
 
@@ -125,7 +125,7 @@ node bin/index.js
 To remove all injected modifications and restore original Antigravity binaries:
 
 ```bash
-npx fantigravity-rtl --restore
+npx -y -p github:Alizjahan/FAntigravity fantigravity --restore
 ```
 
 ---
@@ -159,13 +159,13 @@ npx fantigravity-rtl --restore
 در خط فرمان سیستم‌عامل (PowerShell در ویندوز با دسترسی Administrator یا Terminal در مک و لینوکس):
 
 ```bash
-npx fantigravity-rtl
+npx -y -p github:Alizjahan/FAntigravity fantigravity
 ```
 
 ### بازگردانی به نسخه اولیه
 
 ```bash
-npx fantigravity-rtl --restore
+npx -y -p github:Alizjahan/FAntigravity fantigravity --restore
 ```
 
 </div>

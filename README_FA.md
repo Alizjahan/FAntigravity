@@ -23,7 +23,7 @@
 
 ### روش اول: اجرای مستقیم از طریق NPX (پیشنهادی)
 ```bash
-npx fantigravity-rtl
+npx -y -p github:Alizjahan/FAntigravity fantigravity
 ```
 
 ### روش دوم: اجرای اسکریپت دسته‌ای (Windows Batch)
@@ -44,7 +44,7 @@ node bin/index.js
 جهت لغو تغییرات و بازگردانی فایل‌های اصلی برنامه:
 
 ```bash
-npx fantigravity-rtl --restore
+npx -y -p github:Alizjahan/FAntigravity fantigravity --restore
 ```
 یا فایل `restore.bat` را در ویندوز اجرا نمایید.
 
