@@ -33,7 +33,8 @@ const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
 
 function printBanner() {
     try {
-        const fullArt = figlet.textSync('Antigravity RTL', { font: 'RubiFont' }).split('\n');
+        const topArt = figlet.textSync('FAntigravity', { font: 'RubiFont' }).split('\n').filter(l => l.trim().length > 0);
+        const subArt = figlet.textSync('(Antigravity RTL)', { font: 'Small Block' }).split('\n').filter(l => l.trim().length > 0);
         const hexColors = ['#3387FF', '#F25041', '#DFAC2A', '#91C45B'];
         const colors = hexColors.map(hex => {
             const bigint = parseInt(hex.replace('#', ''), 16);
@@ -72,14 +73,17 @@ function printBanner() {
         };
 
         console.log('');
-        for (const line of fullArt) {
-            if (!line.trim()) continue;
-            console.log(applyGradient(line));
+        for (const line of topArt) {
+            console.log(' ' + applyGradient(line));
+        }
+        console.log('');
+        for (const line of subArt) {
+            console.log('           ' + applyGradient(line));
         }
         console.log('');
         console.log(`\x1b[2m  FAntigravity (RTL) - Developed by Aliz | v${pkg.version}\x1b[0m\n`);
     } catch (err) {
-        console.log(bold(cyan(`\n✨ FAntigravity (RTL) Patcher v${pkg.version} Developed by Aliz\n`)));
+        console.log(bold(cyan(`\n✨ FAntigravity (Antigravity RTL) v${pkg.version} Developed by Aliz\n`)));
     }
 }
 

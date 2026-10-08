@@ -14,8 +14,8 @@ const { blue, green, red, yellow, cyan } = picocolors;
 const PATCH_START = '/* FALIZ RTL CORE */';
 const PATCH_END = '/* END FALIZ RTL CORE */';
 const ANCHOR = 'void win.loadURL(url);';
-const PATCH_BLOCK = /\/\* (?:ANTIGRAVITY RTL PATCH|FALIZ RTL CORE) \*\/[\s\S]*?\/\* END (?:ANTIGRAVITY RTL PATCH|FALIZ RTL CORE) \*\//;
-const REINSTALL_NOTICE = 'برای پچ جدید، نیاز به فایل پشتیبان معتبر است. در صورت بروز مشکل، نرم‌افزار Antigravity را بررسی نمایید.';
+const PATCH_BLOCK = /\/\* (?:ANTIGRAVITY RTL PATCH|FALIZ RTL CORE|FANTIGRAVITY RTL CORE) \*\/[\s\S]*?\/\* END (?:ANTIGRAVITY RTL PATCH|FALIZ RTL CORE|FANTIGRAVITY RTL CORE) \*\//;
+const REINSTALL_NOTICE = 'Valid backup file is required for a new patch. Please verify your Antigravity installation.';
 
 function extractUtilsFromAsar(asarFile) {
     asar.uncache(asarFile);
@@ -66,20 +66,20 @@ export const hasAppBackup = checkAppBackupExists;
 export async function resolveAppAsarLocation() {
     const detected = findAppAsarLocation();
     if (detected) {
-        console.log(cyan(`ℹ محل نصب Antigravity شناسایی شد:`));
+        console.log(cyan(`ℹ Antigravity installation detected:`));
         console.log(`  ${detected}\n`);
         return detected;
     }
 
-    console.log(yellow(`⚠ مسیر خودکار فایل app.asar یافت نشد.`));
+    console.log(yellow(`⚠ Could not automatically locate app.asar file.`));
     const response = await prompts({
         type: 'text',
         name: 'customPath',
-        message: 'لطفاً مسیر کامل فایل app.asar را وارد کنید:'
+        message: 'Please enter the full path to app.asar:'
     });
 
     if (!response.customPath || !fs.existsSync(response.customPath)) {
-        console.error(red('\n✖ مسیر نامعتبر است. عملیات لغو شد.\n'));
+        console.error(red('\n✖ Invalid path. Operation aborted.\n'));
         process.exit(1);
     }
     return response.customPath;
@@ -89,24 +89,24 @@ export const getAppAsarPath = resolveAppAsarLocation;
 export async function restoreOriginalAntigravity(asarPath, { exitOnError = true } = {}) {
     const backupPath = asarPath + '.bak';
     if (!fs.existsSync(backupPath)) {
-        console.error(red('✖ فایل پشتیبان (.bak) برای بازگردانی وجود ندارد.\n'));
+        console.error(red('✖ No backup file (.bak) found to restore.\n'));
         if (exitOnError) process.exit(1);
         return false;
     }
     if (extractUtilsFromAsar(backupPath).includes(PATCH_START)) {
-        console.error(red('✖ فایل پشتیبان خود حاوی پچ است. لطفاً نرم‌افزار را مجدداً نصب کنید.\n'));
+        console.error(red('✖ Backup file already contains patch. Please reinstall Antigravity.\n'));
         if (exitOnError) process.exit(1);
         return false;
     }
-    const spinner = ora('در حال بازگردانی فایل‌های اولیه Antigravity...').start();
+    const spinner = ora('Restoring original Antigravity files...').start();
     try {
         fs.copyFileSync(backupPath, asarPath);
         asar.uncache(asarPath);
         fs.unlinkSync(backupPath);
-        spinner.succeed('فایل‌های اصلی Antigravity با موفقیت بازگردانده شدند!\n');
+        spinner.succeed('Original Antigravity files restored successfully!\n');
         return true;
     } catch (e) {
-        spinner.fail('خطا در بازگردانی فایل‌ها.');
+        spinner.fail('Failed to restore files.');
         console.error(red(e.message));
         if (exitOnError) process.exit(1);
         return false;
@@ -114,16 +114,16 @@ export async function restoreOriginalAntigravity(asarPath, { exitOnError = true 
 }
 export const restoreApp = restoreOriginalAntigravity;
 
-export async function installFAlizPatch(asarPath, { exitOnError = true } = {}) {
+export async function installFAntigravityPatch(asarPath, { exitOnError = true } = {}) {
     const backupPath = asarPath + '.bak';
-    const tempExtractDir = path.join(path.dirname(asarPath), 'faliz-extracted-temp');
-    const spinner = ora('بررسی دسترسی و ایجاد نسخه پشتیبان...').start();
-    let failureStep = 'خطای عدم دسترسی فایل.';
+    const tempExtractDir = path.join(path.dirname(asarPath), 'fantigravity-extracted-temp');
+    const spinner = ora('Checking permissions and creating backup...').start();
+    let failureStep = 'Permission denied.';
 
     try {
         fs.accessSync(path.dirname(asarPath), fs.constants.W_OK);
 
-        failureStep = 'خطا در خواندن فایل app.asar.';
+        failureStep = 'Failed to read app.asar file.';
         const currentUtilsCode = extractUtilsFromAsar(asarPath);
         const backupUtilsCode = fs.existsSync(backupPath) ? extractUtilsFromAsar(backupPath) : null;
         let cleanUtilsCode;
@@ -131,7 +131,7 @@ export async function installFAlizPatch(asarPath, { exitOnError = true } = {}) {
 
         const isCurrentlyPatched = currentUtilsCode.includes('/* ANTIGRAVITY RTL PATCH */') || currentUtilsCode.includes(PATCH_START);
         if (!isCurrentlyPatched) {
-            failureStep = 'خطای دسترسی در کپی فایل پشتیبان.';
+            failureStep = 'Permission error while creating backup file.';
             fs.copyFileSync(asarPath, backupPath);
             asar.uncache(backupPath);
             cleanUtilsCode = currentUtilsCode;
@@ -140,11 +140,11 @@ export async function installFAlizPatch(asarPath, { exitOnError = true } = {}) {
             cleanUtilsCode = removeExistingPatch(currentUtilsCode) ?? (isBackupClean ? backupUtilsCode : null);
             if (cleanUtilsCode === null) throw new Error(REINSTALL_NOTICE);
             shouldRebuildBackup = !isBackupClean;
-            spinner.text = 'به‌روزرسانی پچ راست‌چین FAliz به نسخه جدید...';
+            spinner.text = 'Updating FAntigravity RTL patch to latest version...';
         }
 
-        failureStep = 'خطا در استخراج پکیج ASAR.';
-        spinner.text = 'استخراج محتویات بسته نرم‌افزار...';
+        failureStep = 'Failed to extract ASAR package.';
+        spinner.text = 'Extracting application package...';
         fs.rmSync(tempExtractDir, { recursive: true, force: true });
         asar.extractAll(asarPath, tempExtractDir);
 
@@ -153,8 +153,8 @@ export async function installFAlizPatch(asarPath, { exitOnError = true } = {}) {
         const snappDestPath = path.join(tempExtractDir, 'dist', 'SnappWeb2.0-Regular.woff');
 
         if (shouldRebuildBackup) {
-            failureStep = 'خطا در ایجاد نسخه پشتیبان تمیز.';
-            spinner.text = 'بازسازی نسخه پشتیبان اولیه...';
+            failureStep = 'Failed to rebuild clean backup.';
+            spinner.text = 'Rebuilding original clean backup...';
             fs.writeFileSync(utilsScriptPath, cleanUtilsCode);
             fs.rmSync(vazirDestPath, { force: true });
             if (fs.existsSync(snappDestPath)) fs.rmSync(snappDestPath, { force: true });
@@ -162,13 +162,13 @@ export async function installFAlizPatch(asarPath, { exitOnError = true } = {}) {
             asar.uncache(backupPath);
         }
 
-        failureStep = 'خطا در تزریق کدهای راست‌چین.';
-        spinner.text = 'اعمال تنظیمات و تزریق افزونه FAliz RTL...';
+        failureStep = 'Failed to inject RTL patch.';
+        spinner.text = 'Injecting FAntigravity RTL core engine...';
         let finalUtilsCode = cleanUtilsCode;
 
         const payloadCode = fs.readFileSync(path.join(__dirname, 'payload.js'), 'utf8');
         if (!finalUtilsCode.includes(ANCHOR)) {
-            throw new Error('نقطه تزریق کدها در نسخه فعلی Antigravity یافت نشد.');
+            throw new Error('Injection anchor point not found in current Antigravity version.');
         }
         finalUtilsCode = finalUtilsCode.replace(ANCHOR, () => `${payloadCode.trimEnd()}\n${PATCH_END}`);
         finalUtilsCode = finalUtilsCode.replace(/devTools:\s*!electron_1?\.app\.isPackaged/g, 'devTools: true');
@@ -184,19 +184,19 @@ export async function installFAlizPatch(asarPath, { exitOnError = true } = {}) {
             fs.copyFileSync(snappSrcPath, snappDestPath);
         }
 
-        failureStep = 'خطا در بسته‌بندی مجدد ASAR.';
-        spinner.text = 'بسته‌بندی مجدد نرم‌افزار با قابلیت‌های FAliz...';
+        failureStep = 'Failed to repack ASAR package.';
+        spinner.text = 'Repacking application package with FAntigravity RTL...';
         await asar.createPackage(tempExtractDir, asarPath);
         asar.uncache(asarPath);
         fs.rmSync(tempExtractDir, { recursive: true, force: true });
 
-        spinner.succeed('افزونه FAliz RTL با موفقیت روی Antigravity نصب شد!');
-        console.log(green('\n✨ امکانات راست‌چین فارسی FAliz و فونت‌های سفارشی فعال گردید.'));
-        console.log(green('✨ برای مشاهده تغییرات و محیط جدید، لطفاً Antigravity را ری‌استارت کنید.\n'));
+        spinner.succeed('Successfully installed FAntigravity RTL on Antigravity!');
+        console.log(green('\n✨ Persian RTL features and custom typography are now enabled.'));
+        console.log(green('✨ Please restart Antigravity to experience the new interface.\n'));
         return true;
     } catch (e) {
         spinner.fail(failureStep);
-        console.error(red('\nخطا: ' + e.message));
+        console.error(red('\nError: ' + e.message));
         if (fs.existsSync(tempExtractDir)) {
             fs.rmSync(tempExtractDir, { recursive: true, force: true });
         }
@@ -204,4 +204,5 @@ export async function installFAlizPatch(asarPath, { exitOnError = true } = {}) {
         return false;
     }
 }
-export const patchApp = installFAlizPatch;
+export const patchApp = installFAntigravityPatch;
+export const installFAlizPatch = installFAntigravityPatch;
