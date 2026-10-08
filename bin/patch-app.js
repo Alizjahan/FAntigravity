@@ -6,6 +6,7 @@ import picocolors from 'picocolors';
 import ora from 'ora';
 import prompts from 'prompts';
 import * as asar from '@electron/asar';
+import { execSync } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,15 +35,31 @@ function scanAppCandidates() {
         list.push('/Applications/Antigravity.app/Contents/Resources/app.asar');
         list.push(path.join(os.homedir(), 'Applications', 'Antigravity.app', 'Contents', 'Resources', 'app.asar'));
     } else if (platform === 'win32') {
+        // 1. Check currently running Antigravity standalone process
+        try {
+            const procCmd = 'powershell -NoProfile -Command "(Get-Process -Name \'Antigravity\' -ErrorAction SilentlyContinue | Where-Object { $_.Path -notlike \'*IDE*\' } | Select-Object -First 1).Path"';
+            const procPath = execSync(procCmd, { encoding: 'utf8', timeout: 3000 }).trim();
+            if (procPath && fs.existsSync(procPath)) {
+                list.push(path.join(path.dirname(procPath), 'resources', 'app.asar'));
+            }
+        } catch (_) {}
+
+        // 2. Standard AppData locations
         if (process.env.LOCALAPPDATA) {
             list.push(path.join(process.env.LOCALAPPDATA, 'Programs', 'Antigravity', 'resources', 'app.asar'));
+            list.push(path.join(process.env.LOCALAPPDATA, 'Programs', 'antigravity', 'resources', 'app.asar'));
             list.push(path.join(process.env.LOCALAPPDATA, 'Antigravity', 'resources', 'app.asar'));
         }
-        if (process.env.PROGRAMFILES) {
-            list.push(path.join(process.env.PROGRAMFILES, 'Antigravity', 'resources', 'app.asar'));
-        }
-        if (process.env['PROGRAMFILES(X86)']) {
-            list.push(path.join(process.env['PROGRAMFILES(X86)'], 'Antigravity', 'resources', 'app.asar'));
+
+        // 3. Scan all system drives (C, D, E, F, G)
+        const driveLetters = ['C', 'D', 'E', 'F', 'G'];
+        for (const drive of driveLetters) {
+            list.push(`${drive}:\\Program Files\\Antigravity\\resources\\app.asar`);
+            list.push(`${drive}:\\Program Files (x86)\\Antigravity\\resources\\app.asar`);
+            list.push(`${drive}:\\Program Files\\antigravity\\resources\\app.asar`);
+            list.push(`${drive}:\\Program Files (x86)\\antigravity\\resources\\app.asar`);
+            list.push(`${drive}:\\Antigravity\\resources\\app.asar`);
+            list.push(`${drive}:\\antigravity\\resources\\app.asar`);
         }
     } else {
         list.push('/opt/Antigravity/resources/app.asar');

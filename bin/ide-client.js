@@ -670,9 +670,30 @@
         });
         observer.observe(document.body, { childList: true, subtree: true });
 
+        // Storage sync across windows/iframes
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'antigravity-rtl-config' && e.newValue) {
+                try {
+                    const parsed = JSON.parse(e.newValue);
+                    Object.assign(state, parsed);
+                    updateUI();
+                } catch (_) {}
+            }
+        });
+
         // Initial run
         updateUI();
         tryInsertStatusBarItem();
+
+        // Retry inserting status bar item during workbench boot
+        let retryCount = 0;
+        const retryTimer = setInterval(() => {
+            retryCount++;
+            tryInsertStatusBarItem();
+            if (document.getElementById('antigravity-rtl-statusbar-btn') || retryCount > 30) {
+                clearInterval(retryTimer);
+            }
+        }, 500);
 
     } catch (e) {
         console.error('[Antigravity RTL Client Error]', e);

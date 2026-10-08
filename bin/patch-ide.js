@@ -6,6 +6,8 @@ import picocolors from 'picocolors';
 import ora from 'ora';
 import prompts from 'prompts';
 
+import { execSync } from 'child_process';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const { blue, green, red, yellow } = picocolors;
@@ -32,17 +34,31 @@ function getIdeCandidatePaths() {
         candidates.push('/Applications/Antigravity IDE.app');
         candidates.push(path.join(os.homedir(), 'Applications', 'Antigravity IDE.app'));
     } else if (platform === 'win32') {
+        // 1. Check currently running Antigravity IDE process
+        try {
+            const procCmd = 'powershell -NoProfile -Command "(Get-Process -Name \'Antigravity IDE\' -ErrorAction SilentlyContinue | Select-Object -First 1).Path"';
+            const procPath = execSync(procCmd, { encoding: 'utf8', timeout: 3000 }).trim();
+            if (procPath && fs.existsSync(procPath)) {
+                candidates.push(path.dirname(procPath));
+            }
+        } catch (_) {}
+
+        // 2. Standard AppData locations
         if (process.env.LOCALAPPDATA) {
             candidates.push(path.join(process.env.LOCALAPPDATA, 'Programs', 'Antigravity IDE'));
             candidates.push(path.join(process.env.LOCALAPPDATA, 'Programs', 'antigravity-ide'));
             candidates.push(path.join(process.env.LOCALAPPDATA, 'Antigravity IDE'));
         }
-        if (process.env.PROGRAMFILES) {
-            candidates.push(path.join(process.env.PROGRAMFILES, 'Antigravity IDE'));
-            candidates.push(path.join(process.env.PROGRAMFILES, 'antigravity-ide'));
-        }
-        if (process.env['PROGRAMFILES(X86)']) {
-            candidates.push(path.join(process.env['PROGRAMFILES(X86)'], 'Antigravity IDE'));
+
+        // 3. Scan all system drives (C, D, E, F, G)
+        const driveLetters = ['C', 'D', 'E', 'F', 'G'];
+        for (const drive of driveLetters) {
+            candidates.push(`${drive}:\\Program Files\\Antigravity IDE`);
+            candidates.push(`${drive}:\\Program Files (x86)\\Antigravity IDE`);
+            candidates.push(`${drive}:\\Program Files\\antigravity-ide`);
+            candidates.push(`${drive}:\\Program Files (x86)\\antigravity-ide`);
+            candidates.push(`${drive}:\\Antigravity IDE`);
+            candidates.push(`${drive}:\\antigravity-ide`);
         }
     } else {
         // Linux candidates
@@ -170,6 +186,7 @@ export async function restoreIde(appDir, { exitOnError = true } = {}) {
         const filesToClean = [
             path.join(outDir, 'antigravity-rtl-main.js'),
             path.join(outDir, 'antigravity-rtl-client.js'),
+            path.join(wbDir, 'antigravity-rtl-client.js'),
             path.join(outDir, 'Vazirmatn-Variable.woff2'),
             path.join(wbDir, 'Vazirmatn-Variable.woff2')
         ];
@@ -188,7 +205,7 @@ export async function restoreIde(appDir, { exitOnError = true } = {}) {
 }
 
 export async function patchIde(appDir, { exitOnError = true } = {}) {
-    const { outDir, mainJsPath, mainJsBak, workbenchHtml, workbenchHtmlBak, jetskiHtml, jetskiHtmlBak } = idePaths(appDir);
+    const { outDir, wbDir, mainJsPath, mainJsBak, workbenchHtml, workbenchHtmlBak, jetskiHtml, jetskiHtmlBak } = idePaths(appDir);
 
     const spinner = ora('Checking permissions and backing up IDE files...').start();
     let failLabel = 'Permission Denied.';
@@ -209,12 +226,27 @@ export async function patchIde(appDir, { exitOnError = true } = {}) {
 
         failLabel = 'Failed to copy RTL assets.';
         spinner.text = 'Copying RTL assets and injection scripts...';
-        fs.copyFileSync(path.join(__dirname, 'Vazirmatn-Variable.woff2'), path.join(outDir, 'Vazirmatn-Variable.woff2'));
-        fs.copyFileSync(path.join(__dirname, 'ide-client.js'), path.join(outDir, 'antigravity-rtl-client.js'));
+        
+        // Copy fonts
+        const vazirSrc = path.join(__dirname, 'Vazirmatn-Variable.woff2');
+        if (fs.existsSync(vazirSrc)) {
+            fs.copyFileSync(vazirSrc, path.join(outDir, 'Vazirmatn-Variable.woff2'));
+            fs.copyFileSync(vazirSrc, path.join(wbDir, 'Vazirmatn-Variable.woff2'));
+        }
+
+        // Pre-bundle self-contained client script
+        const fontBase64 = fs.existsSync(vazirSrc) ? fs.readFileSync(vazirSrc).toString('base64') : '';
+        let clientCode = fs.readFileSync(path.join(__dirname, 'ide-client.js'), 'utf8');
+        clientCode = clientCode
+            .replaceAll('__FONT_BASE64__', fontBase64)
+            .replaceAll('__RTL_CONFIG__', 'JSON.parse(localStorage.getItem("antigravity-rtl-config") || \'{"isRTL":true,"forceRTL":false,"fixAtSign":true}\')');
+
+        fs.writeFileSync(path.join(outDir, 'antigravity-rtl-client.js'), clientCode, 'utf8');
+        fs.writeFileSync(path.join(wbDir, 'antigravity-rtl-client.js'), clientCode, 'utf8');
         fs.copyFileSync(path.join(__dirname, 'ide-main.js'), path.join(outDir, 'antigravity-rtl-main.js'));
 
         failLabel = 'Injection into Antigravity IDE failed.';
-        spinner.text = 'Injecting RTL hook into main.js...';
+        spinner.text = 'Injecting RTL hooks into main.js and HTML files...';
         let mainCode = fs.readFileSync(mainJsPath, 'utf8');
         const importHook = "import './antigravity-rtl-main.js';\n";
 
@@ -223,19 +255,28 @@ export async function patchIde(appDir, { exitOnError = true } = {}) {
             fs.writeFileSync(mainJsPath, mainCode, 'utf8');
         }
 
-        // Patch CSP in HTML files to allow data: fonts
-        const patchCspInFile = (filePath) => {
+        // Patch CSP and inject script into HTML files
+        const patchHtmlFile = (filePath) => {
             if (!fs.existsSync(filePath)) return;
             let content = fs.readFileSync(filePath, 'utf8');
-            // If font-src does not have data:, add it
             if (content.includes("font-src") && !/font-src[^;]*\bdata:/.test(content)) {
                 content = content.replace(/(font-src[\s\S]*?'self')/i, "$1\n\t\t\t\t\tdata:");
-                fs.writeFileSync(filePath, content, 'utf8');
             }
+            const scriptTag = '<script src="./antigravity-rtl-client.js" type="module"></script>';
+            if (!content.includes('antigravity-rtl-client.js')) {
+                if (content.includes('</body>')) {
+                    content = content.replace('</body>', `${scriptTag}\n</body>`);
+                } else if (content.includes('</html>')) {
+                    content = content.replace('</html>', `${scriptTag}\n</html>`);
+                } else {
+                    content += `\n${scriptTag}\n`;
+                }
+            }
+            fs.writeFileSync(filePath, content, 'utf8');
         };
 
-        patchCspInFile(workbenchHtml);
-        patchCspInFile(jetskiHtml);
+        patchHtmlFile(workbenchHtml);
+        patchHtmlFile(jetskiHtml);
 
         spinner.succeed('Successfully patched Antigravity IDE!');
         console.log(green('\n✨ RTL Features have been enabled for Antigravity IDE.'));
