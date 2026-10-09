@@ -3,7 +3,6 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import picocolors from 'picocolors';
-import prompts from 'prompts';
 import figlet from 'figlet';
 
 import {
@@ -13,16 +12,6 @@ import {
     detectAppAsarPath,
     hasAppBackup
 } from './patch-app.js';
-import {
-    patchIde,
-    restoreIde,
-    getIdeAppPath,
-    detectIdeAppPath,
-    resolveIdeAppDir,
-    hasIdeBackup
-} from './patch-ide.js';
-
-import { exec } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -94,7 +83,7 @@ function printBanner() {
         console.log('');
         console.log(`\x1b[2m  FAntigravity (RTL) - Developed by Aliz | v${pkg.version}\x1b[0m\n`);
     } catch (err) {
-        console.log(bold(cyan(`\n✨ FAntigravity (Antigravity RTL) v${pkg.version} Developed by Aliz\n`)));
+        console.log(bold(cyan(`\nFAntigravity (Antigravity RTL) v${pkg.version} Developed by Aliz\n`)));
     }
 }
 
@@ -104,27 +93,20 @@ const args = process.argv.slice(2);
 
 if (args.includes('--help') || args.includes('-h')) {
     console.log(`Usage:
-  node bin/index.js [options] [path]
+  npx -y -p github:Alizjahan/FAntigravity fantigravity [options] [path]
 
 Options:
-  --ide              Patch or restore Antigravity IDE only (VS Code Edition)
-  --app              Patch or restore Antigravity Standalone App only
-  -r, --restore      Revert changes and restore original backup files
-  --path <dir/file>  Specify custom path to IDE directory or app.asar
+  -r, --restore      Revert changes and restore original backup app.asar
+  --path <asarFile>  Specify custom path to app.asar
   -h, --help         Show this help message
 
-Default Behavior:
-  Running without --app or --ide will auto-detect installed applications:
-  • If both Antigravity and Antigravity IDE are found, both will be patched.
-  • If only one is found, that one will be patched.
-  • Running with --restore will restore all detected applications with backups.
+Description:
+  Automated Persian Right-to-Left (RTL) and typography patcher for Google Antigravity.
 `);
     process.exit(0);
 }
 
 const isRestore = args.includes('--restore') || args.includes('-r');
-const forceIde = args.includes('--ide');
-const forceApp = args.includes('--app');
 
 // Find custom path argument if provided e.g. --path /foo/bar or last positional argument
 let customPath = null;
@@ -139,65 +121,19 @@ if (pathArgIdx !== -1 && args[pathArgIdx + 1]) {
 }
 
 async function main() {
-    const [runApp, runIde, verb] = isRestore
-        ? [restoreApp, restoreIde, 'restore']
-        : [patchApp, patchIde, 'patch'];
-    let ok = false;
+    const targetPath = customPath || await getAppAsarPath();
 
-    if (customPath) {
-        const ideDir = resolveIdeAppDir(customPath);
-        ok = (forceIde || ideDir) ? await runIde(ideDir || customPath) : await runApp(customPath);
-    } else if (forceApp && !forceIde) {
-        ok = await runApp(await getAppAsarPath());
-    } else if (forceIde && !forceApp) {
-        ok = await runIde(await getIdeAppPath());
-    } else {
-        const appPath = detectAppAsarPath();
-        const ideDir = detectIdeAppPath();
-
-        if (!appPath && !ideDir) {
-            console.log(yellow('⚠ Could not automatically locate Antigravity or Antigravity IDE.'));
-            const { target } = await prompts({
-                type: 'select',
-                name: 'target',
-                message: `Which application would you like to ${verb}?`,
-                choices: [
-                    { title: 'Antigravity IDE (VS Code Edition)', value: 'ide' },
-                    { title: 'Antigravity (Standalone App)', value: 'app' }
-                ],
-                initial: 0
-            });
-            if (!target) process.exit(0);
-            ok = target === 'ide' ? await runIde(await getIdeAppPath()) : await runApp(await getAppAsarPath());
-        } else {
-            const targets = [
-                appPath && { name: 'Antigravity (Standalone App)', run: o => runApp(appPath, o), hasBackup: hasAppBackup(appPath) },
-                ideDir && { name: 'Antigravity IDE', run: o => runIde(ideDir, o), hasBackup: hasIdeBackup(ideDir) }
-            ].filter(t => t && (!isRestore || t.hasBackup));
-
-            if (targets.length === 0) {
-                console.log(yellow('⚠ No backup files found to restore for detected application(s).\n'));
-                return;
-            }
-
-            const multi = targets.length > 1;
-            if (multi && !isRestore) {
-                console.log(bold(cyan('ℹ Found both Antigravity (Standalone App) and Antigravity IDE!')));
-                console.log(bold(cyan('  Patching both applications...\n')));
-            }
-            for (const [i, t] of targets.entries()) {
-                if (isRestore) console.log(blue(`ℹ Found backup for ${t.name}. Restoring...`));
-                else if (multi) console.log(bold(`${i ? '\n' : ''}--- ${i + 1}/2: ${t.name} ---`));
-                else console.log(blue(`ℹ Found ${t.name}. Patching...\n`));
-                if (await t.run({ exitOnError: !multi })) ok = true;
-            }
-            if (multi && ok && !isRestore) {
-                console.log(bold(green('\n✨ Done! Please restart your application(s) to enjoy RTL.\n')));
-            }
+    if (isRestore) {
+        if (!hasAppBackup(targetPath)) {
+            console.log(yellow('⚠ No backup file found to restore.\n'));
+            process.exit(1);
         }
+        console.log(blue(`ℹ Restoring Antigravity from backup...\n`));
+        await restoreApp(targetPath);
+    } else {
+        console.log(blue(`ℹ Patching Antigravity...\n`));
+        await patchApp(targetPath);
     }
-
-
 }
 
 main().catch(e => {

@@ -208,8 +208,8 @@ export async function installFAntigravityPatch(asarPath, { exitOnError = true } 
         fs.rmSync(tempExtractDir, { recursive: true, force: true });
 
         spinner.succeed('Successfully installed FAntigravity RTL on Antigravity!');
-        console.log(green('\n✨ Persian RTL features and custom typography are now enabled.'));
-        console.log(green('✨ Please restart Antigravity to experience the new interface.\n'));
+        console.log(green('\nPersian RTL features and custom typography are now enabled.'));
+        console.log(green('Please restart Antigravity to experience the new interface.\n'));
         return true;
     } catch (e) {
         spinner.fail(failureStep);
