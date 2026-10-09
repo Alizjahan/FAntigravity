@@ -1,7 +1,7 @@
 @echo off
-title Install FAliz RTL (by Aliz)
+title Install FAntigravity-App-RTL (by Aliz)
 echo ========================================================
-echo   Installing FAliz RTL by Aliz...
+echo   Installing FAntigravity-App-RTL by Aliz...
 echo ========================================================
 echo.
 cd /d "%~dp0"

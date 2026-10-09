@@ -93,7 +93,7 @@ const args = process.argv.slice(2);
 
 if (args.includes('--help') || args.includes('-h')) {
     console.log(`Usage:
-  npx -y -p github:Alizjahan/FAntigravity fantigravity [options] [path]
+  npx -y -p github:Alizjahan/FAntigravity-App-RTL-Persian-Arabic fantigravity [options] [path]
 
 Options:
   -r, --restore      Revert changes and restore original backup app.asar
@@ -101,7 +101,7 @@ Options:
   -h, --help         Show this help message
 
 Description:
-  Automated Persian Right-to-Left (RTL) and typography patcher for Google Antigravity.
+  Automated Persian & Arabic Right-to-Left (RTL) and typography patcher for Google Antigravity.
 `);
     process.exit(0);
 }

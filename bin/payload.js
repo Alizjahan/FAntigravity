@@ -49,8 +49,15 @@ win.webContents.on('dom-ready', () => {
                 snappFontBase64 = require('fs').readFileSync(snappPath).toString('base64');
             }
         } catch (_) {}
+        let dubaiFontBase64 = '';
+        try {
+            const dubaiPath = require('path').join(__dirname, 'Dubai-Regular.ttf');
+            if (require('fs').existsSync(dubaiPath)) {
+                dubaiFontBase64 = require('fs').readFileSync(dubaiPath).toString('base64');
+            }
+        } catch (_) {}
 
-        let userConfig = { faFont: '', enFont: '', codeFont: '', lh: '1.6', fs: '16', isRTL: true, forceRTL: false, uiTheme: 'dark' };
+        let userConfig = { faFont: '', enFont: '', codeFont: '', lh: '1.6', fs: '16', isRTL: true, forceRTL: false, uiTheme: 'dark', uiLang: 'fa' };
         try {
             const homeDir = require('os').homedir();
             const cPath1 = require('path').join(homeDir, '.faliz-rtl.json');
@@ -82,10 +89,12 @@ win.webContents.on('dom-ready', () => {
             function setupFAlizRTL() {
                 const fontBase64 = '${fontBase64}';
                 const snappFontBase64 = '${snappFontBase64}';
+                const dubaiFontBase64 = '${dubaiFontBase64}';
                 const falizConfig = ${JSON.stringify(userConfig)};
 
                 let isRTL = falizConfig.isRTL !== false;
                 let forceRTL = Boolean(falizConfig.forceRTL);
+                let currentLang = falizConfig.uiLang || 'fa';
                 const savedFaFont = falizConfig.faFont || '';
                 const savedEnFont = falizConfig.enFont || '';
                 const savedCodeFont = falizConfig.codeFont || '';
@@ -347,7 +356,9 @@ win.webContents.on('dom-ready', () => {
                     let faFontRule = '';
                     let faFontName = "'VazirmatnDefault'";
 
-                    if (faFont === 'Snapp') {
+                    if (faFont === 'Dubai') {
+                        faFontName = "'DubaiDefault', 'VazirmatnDefault'";
+                    } else if (faFont === 'Snapp') {
                         faFontName = "'SnappDefault', 'VazirmatnDefault'";
                     } else if (faFont && faFont !== 'Vazirmatn') {
                         faFontName = "'UserPersianFont', 'VazirmatnDefault'";
@@ -397,6 +408,12 @@ win.webContents.on('dom-ready', () => {
                         @font-face {
                             font-family: 'SnappDefault';
                             src: url('data:font/woff;base64,\${snappFontBase64}') format('woff');
+                            font-weight: 100 900;
+                            unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+                        }
+                        @font-face {
+                            font-family: 'DubaiDefault';
+                            src: url('data:font/truetype;base64,\${dubaiFontBase64}') format('truetype');
                             font-weight: 100 900;
                             unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
                         }
@@ -557,10 +574,13 @@ win.webContents.on('dom-ready', () => {
                             <img src="\${customIconSrc}" class="w-5 h-5 object-contain rounded-md" alt="FAntigravity" />
                             <div class="flex flex-col">
                                 <span class="text-xs font-bold leading-tight" style="background: var(--faliz-accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">FAntigravity</span>
-                                <span class="text-[10px] leading-none" style="color: var(--faliz-text-muted) !important;">راستچین ایجنت هوش مصنوعی</span>
+                                <span id="faliz-panel-subtitle" class="text-[10px] leading-none" style="color: var(--faliz-text-muted) !important;">راستچین ایجنت هوش مصنوعی</span>
                             </div>
                         </div>
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-1.5">
+                            <button id="faliz-lang-btn" type="button" class="faliz-theme-toggle-btn" style="width: auto !important; padding: 0 5px !important; font-size: 10px !important; font-weight: 700 !important;" title="تغییر زبان (فارسی / العربية / English)">
+                                <span id="faliz-lang-badge">FA</span>
+                            </button>
                             <button id="faliz-theme-btn" type="button" class="faliz-theme-toggle-btn" title="تغییر تم">
                             </button>
                         </div>
@@ -573,7 +593,7 @@ win.webContents.on('dom-ready', () => {
                         <!-- Master Enable Toggle -->
                         <div class="flex items-center justify-between gap-3 px-0.5 h-7">
                             <div class="flex items-center gap-1.5">
-                                <span class="font-semibold text-xs opacity-90 text-foreground">فعال‌سازی راست‌چین</span>
+                                <span id="faliz-master-label" class="font-semibold text-xs opacity-90 text-foreground">فعال‌سازی راست‌چین</span>
                                 <span id="faliz-toggle-state-badge" class="faliz-badge \${isRTL ? 'faliz-badge-active' : 'faliz-badge-muted'}">\${isRTL ? 'روشن' : 'خاموش'}</span>
                             </div>
                             <label class="faliz-switch" title="فعال / غیرفعال کردن راست‌چین">
@@ -585,7 +605,7 @@ win.webContents.on('dom-ready', () => {
                         <!-- Force RTL Toggle -->
                         <div id="faliz-force-row" class="flex items-center justify-between gap-3 px-0.5 h-7 transition-opacity \${isRTL ? '' : 'opacity-40 pointer-events-none'}">
                             <div class="flex items-center gap-1.5">
-                                <span class="font-medium text-xs opacity-85 text-foreground">راست‌چین اجباری</span>
+                                <span id="faliz-force-label" class="font-medium text-xs opacity-85 text-foreground">راست‌چین اجباری</span>
                                 <span class="cursor-help inline-flex items-center text-muted-foreground hover:text-foreground" data-faliz-tooltip="اجبار تمام پیام‌ها به حالت راست‌چین حتی اگر با متن انگلیسی شروع شوند">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                                 </span>
@@ -601,31 +621,32 @@ win.webContents.on('dom-ready', () => {
 
                     <!-- Typography Controls -->
                     <div id="faliz-settings-wrapper" class="flex flex-col gap-2 py-1 transition-all duration-200 \${isRTL ? '' : 'opacity-40 pointer-events-none'}">
-                        <!-- Persian Font Selection -->
+                        <!-- Persian & Arabic Font Selection -->
                         <div class="flex items-center justify-between gap-2 px-0.5 h-7">
-                            <span class="font-medium text-xs opacity-85 whitespace-nowrap text-foreground">فونت فارسی:</span>
+                            <span id="faliz-font-label" class="font-medium text-xs opacity-85 whitespace-nowrap text-foreground">فونت فارسی و عربی:</span>
                             <select id="faliz-fafont-select" class="faliz-input cursor-pointer" style="width: 145px;">
                                 <option value="Vazirmatn" \${(!savedFaFont || savedFaFont === 'Vazirmatn') ? 'selected' : ''}>وزیرمتن (پیش‌فرض)</option>
                                 <option value="Snapp" \${savedFaFont === 'Snapp' ? 'selected' : ''}>اسنپ (Snapp)</option>
-                                <option value="custom" \${(savedFaFont && savedFaFont !== 'Vazirmatn' && savedFaFont !== 'Snapp') ? 'selected' : ''}>فونت دلخواه از سیستم...</option>
+                                <option value="Dubai" \${savedFaFont === 'Dubai' ? 'selected' : ''}>دبی (Dubai)</option>
+                                <option value="custom" \${(savedFaFont && savedFaFont !== 'Vazirmatn' && savedFaFont !== 'Snapp' && savedFaFont !== 'Dubai') ? 'selected' : ''}>فونت دلخواه از سیستم...</option>
                             </select>
                         </div>
 
                         <!-- Custom Font Input -->
-                        <div id="faliz-customfont-row" class="flex items-center justify-between gap-2 px-0.5 h-7 \${(savedFaFont && savedFaFont !== 'Vazirmatn' && savedFaFont !== 'Snapp') ? '' : 'hidden'}">
-                            <span class="font-medium text-[11px] opacity-70 whitespace-nowrap pr-1 text-muted-foreground">↳ نام فونت:</span>
-                            <input id="faliz-fafont-input" type="text" placeholder="مثلاً: IRANSans یا B Nazanin" value="\${(savedFaFont !== 'Vazirmatn' && savedFaFont !== 'Snapp') ? savedFaFont : ''}" class="faliz-input" style="width: 145px;">
+                        <div id="faliz-customfont-row" class="flex items-center justify-between gap-2 px-0.5 h-7 \${(savedFaFont && savedFaFont !== 'Vazirmatn' && savedFaFont !== 'Snapp' && savedFaFont !== 'Dubai') ? '' : 'hidden'}">
+                            <span id="faliz-customfont-prefix" class="font-medium text-[11px] opacity-70 whitespace-nowrap pr-1 text-muted-foreground">↳ نام فونت:</span>
+                            <input id="faliz-fafont-input" type="text" placeholder="مثلاً: IRANSans یا B Nazanin" value="\${(savedFaFont !== 'Vazirmatn' && savedFaFont !== 'Snapp' && savedFaFont !== 'Dubai') ? savedFaFont : ''}" class="faliz-input" style="width: 145px;">
                         </div>
 
                         <!-- English Font -->
                         <div class="flex items-center justify-between gap-2 px-0.5 h-7">
-                            <span class="font-medium text-xs opacity-85 whitespace-nowrap text-foreground">فونت انگلیسی:</span>
+                            <span id="faliz-enfont-label" class="font-medium text-xs opacity-85 whitespace-nowrap text-foreground">فونت انگلیسی:</span>
                             <input id="faliz-enfont-input" type="text" placeholder="پیش‌فرض: سیستم" value="\${savedEnFont}" class="faliz-input" style="width: 145px;">
                         </div>
 
                         <!-- Code Font -->
                         <div class="flex items-center justify-between gap-2 px-0.5 h-7">
-                            <span class="font-medium text-xs opacity-85 whitespace-nowrap text-foreground">فونت کد (Mono):</span>
+                            <span id="faliz-codefont-label" class="font-medium text-xs opacity-85 whitespace-nowrap text-foreground">فونت کد (Mono):</span>
                             <input id="faliz-codefont-input" type="text" placeholder="پیش‌فرض: سیستم" value="\${savedCodeFont}" class="faliz-input" style="width: 145px;">
                         </div>
 
@@ -634,7 +655,7 @@ win.webContents.on('dom-ready', () => {
                         <!-- Line Height -->
                         <div class="flex items-center justify-between gap-2 px-0.5 h-7">
                             <div class="flex items-center gap-1.5">
-                                <span class="font-medium text-xs opacity-85 whitespace-nowrap text-foreground">فاصله خطوط:</span>
+                                <span id="faliz-lh-label" class="font-medium text-xs opacity-85 whitespace-nowrap text-foreground">فاصله خطوط:</span>
                                 <span id="faliz-lh-badge" class="faliz-badge faliz-badge-muted">\${savedLH}</span>
                             </div>
                             <div class="flex items-center gap-2">
@@ -648,7 +669,7 @@ win.webContents.on('dom-ready', () => {
                         <!-- Font Size -->
                         <div class="flex items-center justify-between gap-2 px-0.5 h-7">
                             <div class="flex items-center gap-1.5">
-                                <span class="font-medium text-xs opacity-85 whitespace-nowrap text-foreground">اندازه فونت:</span>
+                                <span id="faliz-fs-label" class="font-medium text-xs opacity-85 whitespace-nowrap text-foreground">اندازه فونت:</span>
                                 <span id="faliz-fs-badge" class="faliz-badge faliz-badge-muted">\${savedFS}px</span>
                             </div>
                             <div class="flex items-center gap-2">
@@ -664,7 +685,7 @@ win.webContents.on('dom-ready', () => {
 
                     <!-- Footer Developer Credit -->
                     <div class="flex items-center justify-center pt-1.5 pb-0.5 text-[11px] font-medium select-none" style="color: var(--faliz-text-muted) !important;">
-                        <span>Developed with ❤️ by <a id="faliz-dev-link" href="https://github.com/Alizjahan" target="_blank" rel="noopener noreferrer" style="color: var(--faliz-accent); font-weight: 700; text-decoration: none; cursor: pointer; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.75'; this.style.textDecoration='underline';" onmouseout="this.style.opacity='1'; this.style.textDecoration='none';">Aliz</a></span>
+                        <span><span id="faliz-credit-text">Developed with ❤️ by</span> <a id="faliz-dev-link" href="https://github.com/Alizjahan" target="_blank" rel="noopener noreferrer" style="color: var(--faliz-accent); font-weight: 700; text-decoration: none; cursor: pointer; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.75'; this.style.textDecoration='underline';" onmouseout="this.style.opacity='1'; this.style.textDecoration='none';">Aliz</a></span>
                     </div>
                 \`;
 
@@ -724,10 +745,170 @@ win.webContents.on('dom-ready', () => {
                 applyTheme(currentTheme);
 
                 const getEffectiveFaFont = () => {
+                    if (faFontSelect.value === 'Dubai') return 'Dubai';
                     if (faFontSelect.value === 'Snapp') return 'Snapp';
                     if (faFontSelect.value === 'custom') return faFontInput.value.trim() || 'Vazirmatn';
                     return 'Vazirmatn';
                 };
+
+                const I18N = {
+                    fa: {
+                        dir: 'rtl',
+                        align: 'right',
+                        subtitle: 'راست‌چین ایجنت هوش مصنوعی',
+                        topbarTitle: 'تنظیمات راست‌چین FAntigravity (Alt+R)',
+                        masterToggle: 'فعال‌سازی راست‌چین',
+                        on: 'روشن',
+                        off: 'خاموش',
+                        forceRtl: 'راست‌چین اجباری',
+                        forceRtlTooltip: 'اجبار تمام پیام‌ها به حالت راست‌چین حتی اگر با متن انگلیسی شروع شوند',
+                        fontLabel: 'فونت فارسی و عربی:',
+                        fontVazir: 'وزیرمتن (پیش‌فرض)',
+                        fontSnapp: 'اسنپ (Snapp)',
+                        fontDubai: 'دبی (Dubai)',
+                        fontCustom: 'فونت دلخواه از سیستم...',
+                        customFontLabel: '↳ نام فونت:',
+                        customFontPlaceholder: 'مثلاً: IRANSans یا B Nazanin',
+                        enFontLabel: 'فونت انگلیسی:',
+                        enFontPlaceholder: 'پیش‌فرض: سیستم',
+                        codeFontLabel: 'فونت کد (Mono):',
+                        codeFontPlaceholder: 'پیش‌فرض: سیستم',
+                        lineHeight: 'فاصله خطوط:',
+                        fontSize: 'اندازه فونت:',
+                        resetLh: 'بازنشانی به ۱.۶',
+                        resetFs: 'بازنشانی به ۱۶',
+                        developedWith: 'توسعه‌یافته با ❤️ توسط',
+                        langBadge: 'FA',
+                        switchLangTooltip: 'تغییر زبان (فارسی / العربية / English)'
+                    },
+                    ar: {
+                        dir: 'rtl',
+                        align: 'right',
+                        subtitle: 'المحاذاة الذكية لوكيل الذكاء الاصطناعي',
+                        topbarTitle: 'إعدادات FAntigravity RTL (Alt+R)',
+                        masterToggle: 'تفعيل المحاذاة (RTL)',
+                        on: 'مفعل',
+                        off: 'معطل',
+                        forceRtl: 'محاذاة إجبارية لليمين',
+                        forceRtlTooltip: 'فرض اتجاه اليمين على جميع النصوص حتى لو بدأت بكلمات إنجليزية',
+                        fontLabel: 'الخط العربي والفارسي:',
+                        fontVazir: 'وزير متن (Vazirmatn)',
+                        fontSnapp: 'سناب (Snapp)',
+                        fontDubai: 'دبي (Dubai)',
+                        fontCustom: 'خط مخصص من النظام...',
+                        customFontLabel: '↳ اسم الخط:',
+                        customFontPlaceholder: 'مثال: Amiri أو Cairo',
+                        enFontLabel: 'خط النصوص الإنجليزية:',
+                        enFontPlaceholder: 'افتراضي: النظام',
+                        codeFontLabel: 'خط الأكواد البرمجية:',
+                        codeFontPlaceholder: 'افتراضي: النظام',
+                        lineHeight: 'تباعد الأسطر:',
+                        fontSize: 'حجم الخط:',
+                        resetLh: 'إعادة ضبط إلى 1.6',
+                        resetFs: 'إعادة ضبط إلى 16',
+                        developedWith: 'تم التطوير بـ ❤️ بواسطة',
+                        langBadge: 'AR',
+                        switchLangTooltip: 'تغيير اللغة (فارسی / العربية / English)'
+                    },
+                    en: {
+                        dir: 'ltr',
+                        align: 'left',
+                        subtitle: 'Smart RTL for AI Agent Chat',
+                        topbarTitle: 'FAntigravity RTL Settings (Alt+R)',
+                        masterToggle: 'Enable RTL Layout',
+                        on: 'ON',
+                        off: 'OFF',
+                        forceRtl: 'Force RTL Mode',
+                        forceRtlTooltip: 'Force all messages to align right even when starting with English letters',
+                        fontLabel: 'Persian & Arabic Font:',
+                        fontVazir: 'Vazirmatn (Default)',
+                        fontSnapp: 'Snapp (Clean)',
+                        fontDubai: 'Dubai Font',
+                        fontCustom: 'Custom System Font...',
+                        customFontLabel: '↳ Font Name:',
+                        customFontPlaceholder: 'e.g., Segoe UI or Arial',
+                        enFontLabel: 'English Font:',
+                        enFontPlaceholder: 'Default: System',
+                        codeFontLabel: 'Code Font (Mono):',
+                        codeFontPlaceholder: 'Default: System',
+                        lineHeight: 'Line Height:',
+                        fontSize: 'Font Size:',
+                        resetLh: 'Reset to 1.6',
+                        resetFs: 'Reset to 16',
+                        developedWith: 'Developed with ❤️ by',
+                        langBadge: 'EN',
+                        switchLangTooltip: 'Switch Language (Persian / Arabic / English)'
+                    }
+                };
+
+                const langBtn = dropdownPanel.querySelector('#faliz-lang-btn');
+                const langBadge = dropdownPanel.querySelector('#faliz-lang-badge');
+
+                function applyLanguage(lang) {
+                    if (!I18N[lang]) lang = 'fa';
+                    currentLang = lang;
+                    const t = I18N[lang];
+
+                    dropdownPanel.style.direction = t.dir;
+                    dropdownPanel.style.textAlign = t.align;
+
+                    const subtitleEl = dropdownPanel.querySelector('#faliz-panel-subtitle');
+                    if (subtitleEl) subtitleEl.textContent = t.subtitle;
+
+                    if (langBadge) langBadge.textContent = t.langBadge;
+                    if (langBtn) langBtn.title = t.switchLangTooltip;
+
+                    const masterLabel = dropdownPanel.querySelector('#faliz-master-label');
+                    if (masterLabel) masterLabel.textContent = t.masterToggle;
+
+                    if (toggleStateBadge) {
+                        toggleStateBadge.textContent = isRTL ? t.on : t.off;
+                    }
+
+                    const forceLabel = dropdownPanel.querySelector('#faliz-force-label');
+                    if (forceLabel) forceLabel.textContent = t.forceRtl;
+
+                    const forceTooltip = dropdownPanel.querySelector('[data-faliz-tooltip]');
+                    if (forceTooltip) forceTooltip.setAttribute('data-faliz-tooltip', t.forceRtlTooltip);
+
+                    const fontLabelEl = dropdownPanel.querySelector('#faliz-font-label');
+                    if (fontLabelEl) fontLabelEl.textContent = t.fontLabel;
+
+                    if (faFontSelect && faFontSelect.options.length >= 4) {
+                        faFontSelect.options[0].textContent = t.fontVazir;
+                        faFontSelect.options[1].textContent = t.fontSnapp;
+                        faFontSelect.options[2].textContent = t.fontDubai;
+                        faFontSelect.options[3].textContent = t.fontCustom;
+                    }
+
+                    const customFontPrefix = dropdownPanel.querySelector('#faliz-customfont-prefix');
+                    if (customFontPrefix) customFontPrefix.textContent = t.customFontLabel;
+
+                    if (faFontInput) faFontInput.placeholder = t.customFontPlaceholder;
+
+                    const enFontLabelEl = dropdownPanel.querySelector('#faliz-enfont-label');
+                    if (enFontLabelEl) enFontLabelEl.textContent = t.enFontLabel;
+                    if (enFontInput) enFontInput.placeholder = t.enFontPlaceholder;
+
+                    const codeFontLabelEl = dropdownPanel.querySelector('#faliz-codefont-label');
+                    if (codeFontLabelEl) codeFontLabelEl.textContent = t.codeFontLabel;
+                    if (codeFontInput) codeFontInput.placeholder = t.codeFontPlaceholder;
+
+                    const lhLabelEl = dropdownPanel.querySelector('#faliz-lh-label');
+                    if (lhLabelEl) lhLabelEl.textContent = t.lineHeight;
+                    if (lhResetBtn) lhResetBtn.title = t.resetLh;
+
+                    const fsLabelEl = dropdownPanel.querySelector('#faliz-fs-label');
+                    if (fsLabelEl) fsLabelEl.textContent = t.fontSize;
+                    if (fsResetBtn) fsResetBtn.title = t.resetFs;
+
+                    const creditEl = dropdownPanel.querySelector('#faliz-credit-text');
+                    if (creditEl) creditEl.textContent = t.developedWith;
+
+                    if (topbarBtn) topbarBtn.title = t.topbarTitle;
+                }
+
+                applyLanguage(currentLang);
 
                 const refreshCSS = () => applyStyleRules(getEffectiveFaFont(), enFontInput.value.trim(), codeFontInput.value.trim(), lhInput.value, fsInput.value);
 
@@ -741,7 +922,8 @@ win.webContents.on('dom-ready', () => {
                             fs: fsInput.value,
                             isRTL: isRTL,
                             forceRTL: forceRTL,
-                            uiTheme: currentTheme
+                            uiTheme: currentTheme,
+                            uiLang: currentLang
                         };
                         console.log("SAVE_FALIZ_CONFIG|" + JSON.stringify(cfgObj));
                     } catch (_) {}
@@ -752,8 +934,9 @@ win.webContents.on('dom-ready', () => {
                     persistUserPreferences();
                     toggleCheckbox.checked = isRTL;
 
+                    const t = I18N[currentLang] || I18N.fa;
                     if (isRTL) {
-                        toggleStateBadge.textContent = 'روشن';
+                        toggleStateBadge.textContent = t.on;
                         toggleStateBadge.className = 'faliz-badge faliz-badge-active';
                         forceRow.classList.remove('opacity-40', 'pointer-events-none');
                         settingsWrapper.classList.remove('opacity-40', 'pointer-events-none');
@@ -762,7 +945,7 @@ win.webContents.on('dom-ready', () => {
                         refreshCSS();
                         updateTextDirections();
                     } else {
-                        toggleStateBadge.textContent = 'خاموش';
+                        toggleStateBadge.textContent = t.off;
                         toggleStateBadge.className = 'faliz-badge faliz-badge-muted';
                         forceRow.classList.add('opacity-40', 'pointer-events-none');
                         settingsWrapper.classList.add('opacity-40', 'pointer-events-none');
@@ -774,6 +957,15 @@ win.webContents.on('dom-ready', () => {
                 }
 
                 // Event Listeners
+                if (langBtn) {
+                    langBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const langs = ['fa', 'ar', 'en'];
+                        const nextIdx = (langs.indexOf(currentLang) + 1) % langs.length;
+                        applyLanguage(langs[nextIdx]);
+                        persistUserPreferences();
+                    });
+                }
                 if (themeBtn) {
                     themeBtn.addEventListener('click', (e) => {
                         e.stopPropagation();

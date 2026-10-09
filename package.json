@@ -1,25 +1,27 @@
 {
   "name": "fantigravity-rtl",
   "version": "2.0.0",
-  "description": "FAntigravity (RTL) - Smart RTL & Persian Typography Engine for Antigravity (Standalone App)",
+  "description": "FAntigravity-App-RTL-Persian-Arabic - Smart RTL & Persian/Arabic Typography Engine for Antigravity (Standalone App)",
   "main": "./bin/index.js",
-  "homepage": "https://github.com/Alizjahan/FAntigravity",
+  "homepage": "https://github.com/Alizjahan/FAntigravity-App-RTL-Persian-Arabic",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Alizjahan/FAntigravity.git"
+    "url": "https://github.com/Alizjahan/FAntigravity-App-RTL-Persian-Arabic.git"
   },
   "bugs": {
-    "url": "https://github.com/Alizjahan/FAntigravity/issues"
+    "url": "https://github.com/Alizjahan/FAntigravity-App-RTL-Persian-Arabic/issues"
   },
   "keywords": [
     "fantigravity",
     "antigravity",
     "rtl",
     "persian",
+    "arabic",
     "farsi",
     "typography",
     "vazirmatn",
     "snapp-font",
+    "dubai-font",
     "patcher",
     "electron"
   ],
@@ -28,8 +30,10 @@
   "files": [
     "bin",
     "header.jpg",
+    "header2.jpg",
     "README.md",
-    "README_FA.md"
+    "README_FA.md",
+    "README_AR.md"
   ],
   "dependencies": {
     "@electron/asar": "^4.2.0",

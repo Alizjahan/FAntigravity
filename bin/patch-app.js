@@ -168,6 +168,7 @@ export async function installFAntigravityPatch(asarPath, { exitOnError = true } 
         const utilsScriptPath = path.join(tempExtractDir, 'dist', 'utils.js');
         const vazirDestPath = path.join(tempExtractDir, 'dist', 'Vazirmatn-Variable.woff2');
         const snappDestPath = path.join(tempExtractDir, 'dist', 'SnappWeb2.0-Regular.woff');
+        const dubaiDestPath = path.join(tempExtractDir, 'dist', 'Dubai-Regular.ttf');
 
         if (shouldRebuildBackup) {
             failureStep = 'Failed to rebuild clean backup.';
@@ -175,6 +176,7 @@ export async function installFAntigravityPatch(asarPath, { exitOnError = true } 
             fs.writeFileSync(utilsScriptPath, cleanUtilsCode);
             fs.rmSync(vazirDestPath, { force: true });
             if (fs.existsSync(snappDestPath)) fs.rmSync(snappDestPath, { force: true });
+            if (fs.existsSync(dubaiDestPath)) fs.rmSync(dubaiDestPath, { force: true });
             await asar.createPackage(tempExtractDir, backupPath);
             asar.uncache(backupPath);
         }
@@ -199,6 +201,10 @@ export async function installFAntigravityPatch(asarPath, { exitOnError = true } 
         const snappSrcPath = path.join(__dirname, 'SnappWeb2.0-Regular.woff');
         if (fs.existsSync(snappSrcPath)) {
             fs.copyFileSync(snappSrcPath, snappDestPath);
+        }
+        const dubaiSrcPath = path.join(__dirname, 'Dubai-Regular.ttf');
+        if (fs.existsSync(dubaiSrcPath)) {
+            fs.copyFileSync(dubaiSrcPath, dubaiDestPath);
         }
 
         failureStep = 'Failed to repack ASAR package.';
