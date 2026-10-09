@@ -25,11 +25,10 @@
     "patcher",
     "electron"
   ],
-  "author": "Alizjahan <alizjahanbakhsh@gmail.com>",
+  "author": "Alizjahan",
   "license": "MIT",
   "files": [
     "bin",
-    "header.jpg",
     "header2.jpg",
     "README.md",
     "README_FA.md",

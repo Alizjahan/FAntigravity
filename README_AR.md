@@ -58,7 +58,7 @@ npx -y -p github:Alizjahan/FAntigravity-App-RTL-Persian-Arabic fantigravity --re
 
 ## 👨‍💻 المطور
 
-تم التطوير بواسطة **عليرضا جهانبخش (Aliz)**
+تم التطوير بواسطة **Aliz ([@Alizjahan](https://github.com/Alizjahan))**
 - غيت هاب: [https://github.com/Alizjahan](https://github.com/Alizjahan)
 - تيليجرام: [https://t.me/Alizjahan](https://t.me/Alizjahan)
 

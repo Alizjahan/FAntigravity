@@ -103,7 +103,7 @@ Options:
 
 ## Author & Maintainer
 
-Developed with ❤️ by **Alireza Jahanbakhsh (Aliz)**
+Developed with ❤️ by **Aliz ([@Alizjahan](https://github.com/Alizjahan))**
 - GitHub: [@Alizjahan](https://github.com/Alizjahan)
 - Telegram: [@Alizjahan](https://t.me/Alizjahan)
 
