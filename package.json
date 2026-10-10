@@ -1,6 +1,6 @@
 {
   "name": "fantigravity-rtl",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "FAntigravity-App-RTL-Persian-Arabic - Smart RTL & Persian/Arabic Typography Engine for Antigravity (Standalone App)",
   "main": "./bin/index.js",
   "homepage": "https://github.com/Alizjahan/FAntigravity-App-RTL-Persian-Arabic",

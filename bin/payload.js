@@ -383,12 +383,12 @@ win.webContents.on('dom-ready', () => {
                     let codeFontStr = codeFont ? \`'\${codeFont}', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace\` : 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
 
                     let forceRtlStyle = (isRTL && forceRTL) ? \`
-                        .prose > *:not(pre):not(code), 
-                        [data-testid="chat-message"] > *:not(pre):not(code), 
-                        .markdown-body > *:not(pre):not(code), 
-                        .leading-relaxed > *:not(pre):not(code),
+                        .prose :is(p, li, ul, ol, h1, h2, h3, h4, h5, h6, blockquote):not(pre *):not(code *):not(.monaco-editor *), 
+                        [data-testid="chat-message"] :is(p, li, ul, ol, h1, h2, h3, h4, h5, h6, blockquote):not(pre *):not(code *):not(.monaco-editor *), 
+                        .markdown-body :is(p, li, ul, ol, h1, h2, h3, h4, h5, h6, blockquote):not(pre *):not(code *):not(.monaco-editor *), 
+                        .leading-relaxed :is(p, li, ul, ol, h1, h2, h3, h4, h5, h6, blockquote):not(pre *):not(code *):not(.monaco-editor *),
                         [data-testid="user-input-step"],
-                        [data-testid="user-input-step"] > *:not(pre):not(code),
+                        [data-testid="user-input-step"] :is(p, div):not(pre *):not(code *):not(.monaco-editor *),
                         div:has(> [role="radiogroup"]),
                         label[for^="ask-opt-"] {
                             direction: rtl !important;
@@ -430,13 +430,43 @@ win.webContents.on('dom-ready', () => {
                         .prose, [data-testid="chat-message"], .markdown-body, .leading-relaxed, [contenteditable="true"], [contenteditable="true"] p {
                             font-size: \${fs}px !important;
                         }
-                        p, h1, h2, h3, h4, h5, h6, ul, ol {
+                        p, h1, h2, h3, h4, h5, h6, ul, ol, li, blockquote {
                             unicode-bidi: plaintext;
                             text-align: start;
                         }
                         .prose > *, [data-testid="chat-message"] > *, .markdown-body > * {
                             unicode-bidi: plaintext;
                             text-align: start;
+                        }
+                        [dir="rtl"] {
+                            direction: rtl !important;
+                            text-align: right !important;
+                        }
+                        [dir="ltr"] {
+                            direction: ltr !important;
+                            text-align: left !important;
+                        }
+                        li[dir="rtl"] {
+                            direction: rtl !important;
+                            text-align: right !important;
+                            unicode-bidi: isolate !important;
+                        }
+                        ul:has(> li[dir="rtl"]), ol:has(> li[dir="rtl"]),
+                        ul[dir="rtl"], ol[dir="rtl"] {
+                            direction: rtl !important;
+                            text-align: right !important;
+                            padding-right: 1.5em !important;
+                            padding-left: 0 !important;
+                        }
+                        ul[dir="ltr"], ol[dir="ltr"] {
+                            direction: ltr !important;
+                            text-align: left !important;
+                        }
+                        [dir="rtl"] :is(pre, code, .monaco-icon-label, [data-component-name="button"], .font-mono) {
+                            direction: ltr !important;
+                            text-align: left !important;
+                            unicode-bidi: isolate !important;
+                            display: inline-block;
                         }
                         label[for^="ask-opt-"] {
                             unicode-bidi: plaintext;
@@ -510,31 +540,103 @@ win.webContents.on('dom-ready', () => {
                 }
 
                 // Text Direction Synchronizer
+                const PERSIAN_ARABIC_RE = /[\\u0600-\\u06FF\\u0750-\\u077F\\u08A0-\\u08FF\\uFB50-\\uFDFF\\uFE70-\\uFEFF]/;
+
+                function detectElementDirection(el) {
+                    if (forceRTL) return 'rtl';
+
+                    const raw = el.tagName === 'TEXTAREA' ? el.value : el.textContent;
+                    if (!raw) return null;
+                    const text = raw.replace(/[\\u200B-\\u200F\\uFEFF]/g, '').trim();
+                    if (!text) return null;
+
+                    if (!PERSIAN_ARABIC_RE.test(text)) {
+                        return 'ltr';
+                    }
+
+                    // 1. Direct starting character check
+                    const firstCharMatch = text.match(/[\\p{L}\\p{N}]/u);
+                    if (firstCharMatch && PERSIAN_ARABIC_RE.test(firstCharMatch[0])) {
+                        return 'rtl';
+                    }
+
+                    // 2. Starts with non-Persian (e.g. English letter, number, symbol, filename):
+                    // Strip leading bullets, numbers, dashes, quotes, brackets (e.g. "1.", "•", "-", "*", "[", "(")
+                    let cleaned = text.replace(/^[\\s•\\-\\*\d\\.\\(\\)\\[\\]#:>]+/u, '').trim();
+
+                    // Strip leading file icon badge letter (like "T ", "ts ", "py ", "jsx ")
+                    cleaned = cleaned.replace(/^[A-Za-z]{1,3}\\s+(?=[\\w\\.\\-/\\\\]+\\.[a-zA-Z0-9]{1,10})/i, '').trim();
+
+                    // Strip leading file name or path (e.g., "04_discussion.tex", "05_conclusions.tex", "main.py", "c:\path\file.tex")
+                    cleaned = cleaned.replace(/^\\[?[\\w\\.\\-/\\\\]+\\.[a-zA-Z0-9]{1,10}\\]?\\b/i, '').trim();
+
+                    // Strip separators following filename (":", "-", "—", "|", ">", ")")
+                    cleaned = cleaned.replace(/^[\\s:\\-—\\|>\\)\\]]+/u, '').trim();
+
+                    const nextCharMatch = cleaned.match(/[\\p{L}\\p{N}]/u);
+                    if (nextCharMatch && PERSIAN_ARABIC_RE.test(nextCharMatch[0])) {
+                        return 'rtl';
+                    }
+
+                    // 3. Child elements check: if first child is an element (badge/icon/button/code) and following text is Persian
+                    if (el.children && el.children.length > 0) {
+                        let restText = '';
+                        for (let i = 1; i < el.childNodes.length; i++) {
+                            restText += el.childNodes[i].textContent || '';
+                        }
+                        restText = restText.replace(/^[\\s:\\-—\\|>•\\*\\d\\.\\)\\]]+/u, '').trim();
+                        const childCharMatch = restText.match(/[\\p{L}\\p{N}]/u);
+                        if (childCharMatch && PERSIAN_ARABIC_RE.test(childCharMatch[0])) {
+                            return 'rtl';
+                        }
+                    }
+
+                    // 4. Character distribution check
+                    const persianChars = (text.match(/[\\u0600-\\u06FF\\u0750-\\u077F\\u08A0-\\u08FF\\uFB50-\\uFDFF\\uFE70-\\uFEFF]/g) || []).length;
+                    const latinChars = (text.match(/[A-Za-z]/g) || []).length;
+
+                    if (persianChars > 0) {
+                        if (persianChars >= latinChars) {
+                            return 'rtl';
+                        }
+                        if (persianChars >= 5 && latinChars <= 30) {
+                            return 'rtl';
+                        }
+                    }
+
+                    return 'ltr';
+                }
+
                 function updateTextDirections() {
                     if (!isRTL) return;
+
                     document.querySelectorAll('[contenteditable="true"] p, [contenteditable="true"], textarea[data-testid="ask-question-writein"]').forEach(el => {
-                        const raw = el.tagName === 'TEXTAREA' ? el.value : el.textContent;
-                        const text = raw.replace(/[\\u200B-\\u200F\\uFEFF]/g, '').trim();
-                        if (text.length > 0) {
-                            const firstChar = text.match(/[\\p{L}\\p{N}]/u);
-                            if (firstChar) {
-                                const isPersian = /[\\u0600-\\u06FF\\u0750-\\u077F\\u08A0-\\u08FF\\uFB50-\\uFDFF\\uFE70-\\uFEFF]/.test(firstChar[0]);
-                                el.setAttribute('dir', isPersian ? 'rtl' : 'ltr');
-                            }
+                        const dir = detectElementDirection(el);
+                        if (dir) {
+                            el.setAttribute('dir', dir);
                         } else {
                             el.removeAttribute('dir');
                         }
                     });
 
                     document.querySelectorAll('.prose, [data-testid="chat-message"], .markdown-body, .leading-relaxed').forEach(container => {
-                        container.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6').forEach(el => {
+                        container.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6, blockquote').forEach(el => {
                             if (el.closest('pre, code, .monaco-editor')) return;
-                            const text = el.textContent.replace(/[\\u200B-\\u200F\\uFEFF]/g, '').trim();
-                            if (text.length > 0) {
-                                const firstChar = text.match(/[\\p{L}\\p{N}]/u);
-                                if (firstChar) {
-                                    const isPersian = /[\\u0600-\\u06FF\\u0750-\\u077F\\u08A0-\\u08FF\\uFB50-\\uFDFF\\uFE70-\\uFEFF]/.test(firstChar[0]);
-                                    el.setAttribute('dir', isPersian ? 'rtl' : 'ltr');
+                            const dir = detectElementDirection(el);
+                            if (dir) {
+                                el.setAttribute('dir', dir);
+                            }
+                        });
+
+                        container.querySelectorAll('ul, ol').forEach(listEl => {
+                            if (listEl.closest('pre, code, .monaco-editor')) return;
+                            const hasRtlLi = listEl.querySelector('li[dir="rtl"]');
+                            if (hasRtlLi) {
+                                listEl.setAttribute('dir', 'rtl');
+                            } else {
+                                const hasLtrLi = listEl.querySelector('li[dir="ltr"]');
+                                if (hasLtrLi) {
+                                    listEl.setAttribute('dir', 'ltr');
                                 }
                             }
                         });

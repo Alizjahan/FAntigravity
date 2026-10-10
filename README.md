@@ -7,7 +7,7 @@
 # FAntigravity-App-RTL-Persian-Arabic
 ### Smart Persian & Arabic RTL Typography Engine for Antigravity (Standalone App)
 
-[![Release](https://img.shields.io/badge/Release-v2.0.0-0D9DF8?style=flat-square&logo=github)](https://github.com/Alizjahan/FAntigravity-App-RTL-Persian-Arabic)
+[![Release](https://img.shields.io/badge/Release-v2.0.1-0D9DF8?style=flat-square&logo=github)](https://github.com/Alizjahan/FAntigravity-App-RTL-Persian-Arabic)
 [![License](https://img.shields.io/badge/License-MIT-34C6BF?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20.0-89DB76?style=flat-square&logo=node.js)](https://nodejs.org/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-FA9138?style=flat-square)]()
